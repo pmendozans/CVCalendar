@@ -55,8 +55,12 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
 
     public func reloadMonthViews() {
         for (identifier, monthView) in monthViews {
-            monthView.frame.origin.x =
-                CGFloat(indexOfIdentifier(identifier)) * scrollView.frame.width
+            if currentScrollingDirection == .horizontal {
+                monthView.frame.origin.x = CGFloat(indexOfIdentifier(identifier)) * scrollView.frame.width
+            } else {
+                monthView.frame.origin.y = CGFloat(indexOfIdentifier(identifier)) * scrollView.frame.height
+            }
+            
             monthView.removeFromSuperview()
             scrollView.addSubview(monthView)
         }
@@ -66,8 +70,13 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
 
     public func insertMonthView(_ monthView: MonthView, withIdentifier identifier: Identifier) {
         let index = CGFloat(indexOfIdentifier(identifier))
-
-        monthView.frame.origin = CGPoint(x: scrollView.bounds.width * index, y: 0)
+        
+        if currentScrollingDirection == .horizontal {
+            monthView.frame.origin = CGPoint(x: scrollView.bounds.width * index, y: 0)
+        } else {
+            monthView.frame.origin = CGPoint(x: 0, y: scrollView.bounds.height * index)
+        }
+        
         monthViews[identifier] = monthView
         scrollView.addSubview(monthView)
         checkScrollToPreviousDisabled()
@@ -78,7 +87,12 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
     public func replaceMonthView(_ monthView: MonthView,
                                  withIdentifier identifier: Identifier, animatable: Bool) {
         var monthViewFrame = monthView.frame
-        monthViewFrame.origin.x = monthViewFrame.width * CGFloat(indexOfIdentifier(identifier))
+        if currentScrollingDirection == .horizontal {
+            monthViewFrame.origin.x = monthViewFrame.width * CGFloat(indexOfIdentifier(identifier))
+        } else {
+            monthViewFrame.origin.y = monthViewFrame.height * CGFloat(indexOfIdentifier(identifier))
+        }
+        
         monthView.frame = monthViewFrame
 
         monthViews[identifier] = monthView
@@ -122,7 +136,7 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
     }
 
     // MARK: - Override methods
-
+    
     public override func updateFrames(_ rect: CGRect) {
         super.updateFrames(rect)
 
@@ -453,29 +467,62 @@ extension CVCalendarMonthContentViewController {
 extension CVCalendarMonthContentViewController {
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if currentScrollingDirection == .horizontal {
+            allowHorizontalScrolling()
+            return
+        }
+        allowVerticalScrolling()
+    }
+    
+    private func allowVerticalScrolling() {
+        if scrollView.contentOffset.x != 0 {
+            scrollView.contentOffset = CGPoint(x: 0, y: scrollView.contentOffset.y)
+        }
+        
+        //restricts scrolling to previous months
+        if monthViews[presented]?.allowScrollToPreviousMonth == false,
+            scrollView.contentOffset.y < scrollView.frame.height {
+            scrollView.setContentOffset(CGPoint(x: 0, y: scrollView.frame.height), animated: false)
+            return
+        }
+        
+        //restricts scrolling to next months
+        if monthViews[presented]?.allowScrollToNextMonth == false,
+            scrollView.contentOffset.y > scrollView.frame.height {
+            scrollView.setContentOffset(CGPoint(x: 0, y: scrollView.frame.height), animated: false)
+            return
+        }
+        
+        let page = Int(floor((scrollView.contentOffset.y - scrollView.frame.height / 2) / scrollView.frame.height) + 1)
+        if currentPage != page {
+            currentPage = page
+        }
+        lastContentOffset = scrollView.contentOffset.x
+    }
+    
+    private func allowHorizontalScrolling() {
         if scrollView.contentOffset.y != 0 {
             scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x, y: 0)
         }
-
+        
         //restricts scrolling to previous months
         if monthViews[presented]?.allowScrollToPreviousMonth == false,
             scrollView.contentOffset.x < scrollView.frame.width {
             scrollView.setContentOffset(CGPoint(x: scrollView.frame.width, y: 0), animated: false)
             return
         }
-
+        
         //restricts scrolling to next months
         if monthViews[presented]?.allowScrollToNextMonth == false,
             scrollView.contentOffset.x > scrollView.frame.width {
             scrollView.setContentOffset(CGPoint(x: scrollView.frame.width, y: 0), animated: false)
             return
         }
-
+        
         let page = Int(floor((scrollView.contentOffset.x - scrollView.frame.width / 2) / scrollView.frame.width) + 1)
         if currentPage != page {
             currentPage = page
         }
-
         lastContentOffset = scrollView.contentOffset.x
     }
 
@@ -503,12 +550,22 @@ extension CVCalendarMonthContentViewController {
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView,
                                          willDecelerate decelerate: Bool) {
         if decelerate {
-            let rightBorder = scrollView.frame.width
-            if scrollView.contentOffset.x <= rightBorder {
-                direction = .right
+            if currentScrollingDirection == .horizontal {
+                let rightBorder = scrollView.frame.width
+                if scrollView.contentOffset.x <= rightBorder {
+                    direction = .right
+                } else {
+                    direction = .left
+                }
             } else {
-                direction = .left
+                let bottomBorder = scrollView.frame.height
+                if scrollView.contentOffset.y <= bottomBorder {
+                    direction = .right
+                } else {
+                    direction = .left
+                }
             }
+            print(direction)
         }
 
         for monthView in monthViews.values {

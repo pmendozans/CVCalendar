@@ -46,8 +46,11 @@ open class CVCalendarContentViewController: UIViewController {
         presentedMonthView.updateAppearance(frame)
 
         super.init(nibName: nil, bundle: nil)
-
-        scrollView.contentSize = CGSize(width: frame.width * 3, height: frame.height)
+        if currentScrollingDirection == .horizontal {
+            scrollView.contentSize = CGSize(width: frame.width * 3, height: frame.height)
+        } else {
+            scrollView.contentSize = CGSize(width: frame.width, height: frame.height * 3)
+        }
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.showsVerticalScrollIndicator = false
         scrollView.layer.masksToBounds = true
@@ -67,7 +70,12 @@ extension CVCalendarContentViewController {
         if frame != CGRect.zero {
             scrollView.frame = frame
             scrollView.removeAllSubviews()
-            scrollView.contentSize = CGSize(width: frame.size.width * 3, height: frame.size.height)
+            if currentScrollingDirection == .horizontal {
+                scrollView.contentSize = CGSize(width: frame.size.width * 3, height: frame.size.height)
+            } else {
+                scrollView.contentSize = CGSize(width: frame.size.width, height: frame.size.height * 3)
+            }
+            print("updateFrames CONTENT: \(scrollView.contentSize.height)- SCROLL: \(scrollView.frame.height)")
         }
 
         calendarView.isHidden = false
@@ -251,6 +259,7 @@ extension CVCalendarContentViewController {
                     break
             }
         }
+        scrollView.contentSize = CGSize(width: scrollView.contentSize.width, height: height * 3)
     }
 
     public func updateLayoutIfNeeded() {

@@ -29,6 +29,13 @@ public typealias MenuViewDelegate = CVCalendarMenuViewDelegate
 public typealias TouchController = CVCalendarTouchController
 public typealias SelectionType = CVSelectionType
 
+enum ScrollingDirection {
+    case horizontal
+    case vertical
+}
+
+var currentScrollingDirection: ScrollingDirection = .vertical
+
 public final class CVCalendarView: UIView {
     // MARK: - Public properties
     public var manager: Manager!
