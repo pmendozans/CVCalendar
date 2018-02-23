@@ -343,8 +343,6 @@ extension ViewController {
         guard let currentCalendar = currentCalendar else { return }
         
         let components = Manager.componentsForDate(date, calendar: currentCalendar) // from today
-        
-        print("Showing Month: \(components.month!)")
     }
     
     
@@ -352,8 +350,6 @@ extension ViewController {
         guard let currentCalendar = currentCalendar else { return }
         
         let components = Manager.componentsForDate(date, calendar: currentCalendar) // from today
-        
-        print("Showing Month: \(components.month!)")
     }
     
 }

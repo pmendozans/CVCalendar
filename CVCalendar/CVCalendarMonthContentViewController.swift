@@ -10,7 +10,7 @@ import UIKit
 
 public final class CVCalendarMonthContentViewController: CVCalendarContentViewController, CVCalendarContentPresentationCoordinator {
     fileprivate var monthViews: [Identifier : MonthView]
-
+    
     public override init(calendarView: CalendarView, frame: CGRect) {
         monthViews = [Identifier : MonthView]()
         super.init(calendarView: calendarView, frame: frame)
@@ -71,12 +71,13 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
     public func insertMonthView(_ monthView: MonthView, withIdentifier identifier: Identifier) {
         let index = CGFloat(indexOfIdentifier(identifier))
         
+        
         if currentScrollingDirection == .horizontal {
             monthView.frame.origin = CGPoint(x: scrollView.bounds.width * index, y: 0)
         } else {
-            monthView.frame.origin = CGPoint(x: 0, y: scrollView.bounds.height * index)
+            monthView.frame.origin = CGPoint(x: 0, y: (scrollView.bounds.height) * index)
         }
-        
+
         monthViews[identifier] = monthView
         scrollView.addSubview(monthView)
         checkScrollToPreviousDisabled()
@@ -90,7 +91,7 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
         if currentScrollingDirection == .horizontal {
             monthViewFrame.origin.x = monthViewFrame.width * CGFloat(indexOfIdentifier(identifier))
         } else {
-            monthViewFrame.origin.y = monthViewFrame.height * CGFloat(indexOfIdentifier(identifier))
+            monthViewFrame.origin.y = (monthViewFrame.height) * CGFloat(indexOfIdentifier(identifier))
         }
         
         monthView.frame = monthViewFrame
@@ -112,12 +113,20 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
                 monthViews[previous]?.removeFromSuperview()
 
                 replaceMonthView(presented, withIdentifier: previous, animatable: false)
-                replaceMonthView(following, withIdentifier: self.presented, animatable: true)
 
+                replaceMonthView(following, withIdentifier: self.presented, animatable: true)
                 insertMonthView(getFollowingMonth(following.date), withIdentifier: self.following)
                 self.calendarView.delegate?.didShowNextMonthView?(following.date)
             }
         }
+    }
+    
+    private func getBigestHeight() -> CGFloat? {
+        if let prevous = monthViews[previous], let presented = monthViews[presented], let following = monthViews[following] {
+            let potentialSizes = [prevous.potentialSize.height, presented.potentialSize.height, following.potentialSize.height]
+            return potentialSizes.max()
+        }
+        return nil
     }
 
     public func scrolledRight() {
@@ -126,9 +135,10 @@ public final class CVCalendarMonthContentViewController: CVCalendarContentViewCo
                 pageLoadingEnabled = false
 
                 monthViews[following]?.removeFromSuperview()
-                replaceMonthView(previous, withIdentifier: self.presented, animatable: true)
                 replaceMonthView(presented, withIdentifier: following, animatable: false)
-
+                replaceMonthView(previous, withIdentifier: self.presented, animatable: true)
+                
+            
                 insertMonthView(getPreviousMonth(previous.date), withIdentifier: self.previous)
                 self.calendarView.delegate?.didShowPreviousMonthView?(previous.date)
             }
@@ -543,8 +553,27 @@ extension CVCalendarMonthContentViewController {
 
         updateSelection()
         updateLayoutIfNeeded()
+        reupdateLayout()
+        print("-------\(monthViews[presented]?.date)---------")
+        print("CONTENT SIZE : \(scrollView.contentSize.height)")
+        print("SCROLL HEIGHT: \(scrollView.frame.height)")
+        print(monthViews[previous]?.frame ?? "")
+        print(monthViews[presented]?.frame ?? "")
+        print(monthViews[following]?.frame ?? "")
+        print("----------------")
         pageLoadingEnabled = true
         direction = .none
+    }
+    
+    private func reupdateLayout() {
+        guard let contentHeight = monthViews[presented]?.potentialSize.height else {
+            return
+        }
+        //scrollView.contentSize = CGSize(width: scrollView.frame.width, height: contentHeight * 3)
+        let scrollWidth = scrollView.frame.width
+        monthViews[previous]!.frame = CGRect(x: 0, y: 0, width: scrollWidth, height: monthViews[previous]!.frame.height)
+        monthViews[presented]!.frame = CGRect(x: 0, y: monthViews[previous]!.frame.height, width: scrollWidth, height: contentHeight)
+        monthViews[following]!.frame = CGRect(x: 0, y: contentHeight * 2, width: scrollWidth, height: monthViews[following]!.frame.height)
     }
 
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView,
@@ -565,7 +594,6 @@ extension CVCalendarMonthContentViewController {
                     direction = .left
                 }
             }
-            print(direction)
         }
 
         for monthView in monthViews.values {

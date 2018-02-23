@@ -75,9 +75,7 @@ extension CVCalendarContentViewController {
             } else {
                 scrollView.contentSize = CGSize(width: frame.size.width, height: frame.size.height * 3)
             }
-            print("updateFrames CONTENT: \(scrollView.contentSize.height)- SCROLL: \(scrollView.frame.height)")
         }
-
         calendarView.isHidden = false
     }
 }
@@ -259,12 +257,13 @@ extension CVCalendarContentViewController {
                     break
             }
         }
-        scrollView.contentSize = CGSize(width: scrollView.contentSize.width, height: height * 3)
     }
 
-    public func updateLayoutIfNeeded() {
+    public func updateLayoutIfNeeded(siblingMonths: [MonthView] = []) {
+        
         if presentedMonthView.potentialSize.height != scrollView.bounds.height {
             updateHeight(presentedMonthView.potentialSize.height, animated: true)
+            
         } else if presentedMonthView.frame.size != scrollView.frame.size {
             presentedMonthView.frame.size = presentedMonthView.potentialSize
             presentedMonthView.updateInteractiveView()
